@@ -15,6 +15,7 @@ export function draftFromContext(task,pack){
  const fields=[['Problem',['customer problem','problem']],['Target users',['target users','users','audience']],['Scope',['launch scope','scope']],['Success metric',['success metric','metric','metrics']],['Requirements and constraints',['engineering constraint','constraint','constraints','requirements']],['Milestone',['beta launch','launch date','milestone','timeline']]];
  const assigned=new Set();
  const sections=fields.map(([heading,keys])=>{const matches=pack.filter(m=>keys.includes(m.category.toLowerCase()));matches.forEach(m=>assigned.add(m.id));return `## ${heading}\n${matches.length?matches.map(m=>`${m.text} [${m.id}]`).join('\n'):'Not yet defined in approved project context.'}`;});
+ const risks=pack.filter(m=>m.category.toLowerCase()==='launch risk');risks.forEach(m=>assigned.add(m.id));if(risks.length)sections.push(`## Risks awaiting confirmation\n${risks.map(m=>`${m.text} [${m.id}]`).join('\n')}`);
  const others=pack.filter(m=>!assigned.has(m.id));if(others.length)sections.push(`## Other approved decisions\n${others.map(m=>`${m.category}: ${m.text} [${m.id}]`).join('\n')}`);
  return `# ${title}\n\n${sections.join('\n\n')}\n\n## Open questions\nConfirm acceptance criteria, dependencies, and any missing numeric targets with the project owner.`;
 }
