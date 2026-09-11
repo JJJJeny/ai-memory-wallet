@@ -1,0 +1,11 @@
+{
+  "name": "ai-memory-wallet-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/core.test.js tests/worker.test.js",
+    "check": "node --check public/app.js && node --check public/core.js && node --check backend/worker.js",
+    "dev": "python3 -m http.server 4173 --bind 127.0.0.1 --directory public"
+  }
+}

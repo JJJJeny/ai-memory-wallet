@@ -1,0 +1,15 @@
+{
+  "name": "ai-memory-wallet-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-11",
+  "ai": { "binding": "AI" },
+  "vars": {
+    "API_ENABLED": "false",
+    "ALLOWED_ORIGINS": "https://jjjjeny.github.io,http://127.0.0.1:4173"
+  },
+  "ratelimits": [
+    { "name": "PER_VISITOR", "namespace_id": "48101", "simple": { "limit": 10, "period": 60 } },
+    { "name": "PER_LOCATION", "namespace_id": "48102", "simple": { "limit": 30, "period": 60 } }
+  ],
+  "observability": { "enabled": false }
+}
