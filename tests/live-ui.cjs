@@ -1,20 +1,13 @@
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 const assert=require('node:assert/strict');
 (async()=>{
- const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage();
+ const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:1440,height:1000}});
  await page.route('**/config.js',r=>r.fulfill({contentType:'application/javascript',body:'window.MEMORY_WALLET_CONFIG={apiBase:"https://backend.example"}'}));
- const requests=[];let fail=true;
- await page.route('https://backend.example/api/context',r=>{const body=r.request().postDataJSON();requests.push(body);if(fail)return r.fulfill({status:502,contentType:'application/json',body:JSON.stringify({error:'Test backend unavailable. Your input is unchanged.'})});return r.fulfill({contentType:'application/json',body:JSON.stringify(body.operation==='extract'?{items:[{category:'Scope',text:'Mobile only',excerpt:'Scope: Mobile only'},{category:'Metric',text:'Weekly retention',excerpt:'Metric: Weekly retention'}]}:{baseline:'# Baseline\nRaw draft',draft:'# Reviewed\nMobile only [own-1]'})});});
- await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'Your own context',exact:true}).click();
- await page.locator('#task').fill('Write a mobile PRD');await page.locator('#note').fill('Scope: Mobile only\nMetric: Weekly retention');
- await page.getByRole('button',{name:'Find proposed context'}).click();await page.getByRole('alert').waitFor();
- assert.equal(await page.locator('#note').inputValue(),'Scope: Mobile only\nMetric: Weekly retention');
- fail=false;await page.getByRole('button',{name:'Find proposed context'}).click();
- await page.locator('[data-memory="own-1"]').getByRole('button',{name:'Approve',exact:true}).click();
- await page.locator('[data-memory="own-2"]').getByRole('button',{name:'Reject',exact:true}).click();
- await page.getByRole('button',{name:'Create draft with this context'}).click();await page.getByRole('heading',{name:'See what your context changes.'}).waitFor();
- const sent=requests.find(x=>x.operation==='draft');assert.equal(sent.context.length,1);assert.equal(sent.context[0].category,'Scope');assert.ok(sent.text.includes('Metric: Weekly retention'));
- await page.getByRole('button',{name:'Inspect Context Receipt'}).click();assert.ok((await page.locator('.receipt-list').textContent()).includes('Mobile only'));assert.ok(!(await page.locator('.receipt-list').textContent()).includes('Weekly retention'));
- console.log('PASS: configured live UI handles backend errors, preserves input, retries, sends approved-only context and displays matching receipt. Backend was mocked; no live inference verified.');
- await browser.close();
+ const calls=[];let fail=true;
+ await page.route('https://backend.example/api/context',r=>{const body=r.request().postDataJSON();calls.push(body);if(fail)return r.fulfill({status:502,contentType:'application/json',body:JSON.stringify({error:'Backend unavailable. Your note is unchanged.'})});return r.fulfill({contentType:'application/json',body:JSON.stringify(body.operation==='extract'?{items:[{category:'Scope',text:'Mobile only',excerpt:'Scope: Mobile only'},{category:'Metric',text:'Weekly retention',excerpt:'Metric: Weekly retention'}]}:{draft:'# Mobile PRD\nMobile only [id]'})});});
+ await page.goto('http://127.0.0.1:4173');await page.getByRole('button',{name:'Bring your own project'}).click();await page.getByRole('textbox',{name:'Project name'}).fill('Live project');await page.getByRole('button',{name:'Create project',exact:true}).click();
+ await page.getByRole('button',{name:'Add context',exact:true}).first().click();await page.getByRole('textbox',{name:'Project note',exact:true}).fill('Scope: Mobile only\nMetric: Weekly retention');await page.getByRole('button',{name:'Review suggestions'}).click();await page.getByRole('alert').waitFor();assert.equal(await page.getByRole('textbox',{name:'Project note',exact:true}).inputValue(),'Scope: Mobile only\nMetric: Weekly retention');
+ fail=false;await page.getByRole('button',{name:'Review suggestions'}).click();await page.locator('.memory-card').first().getByRole('button',{name:'Approve',exact:true}).click();await page.locator('.memory-card').last().getByRole('button',{name:'Reject',exact:true}).click();await page.getByRole('textbox',{name:'Message Product assistant'}).fill('/prd Mobile checkout');await page.getByRole('button',{name:'Send message',exact:true}).click();await page.locator('.draft-document').waitFor();
+ const sent=calls.find(x=>x.operation==='draft');assert.equal(sent.context.length,1);assert.equal(sent.context[0].category,'Scope');assert.ok(!JSON.stringify(sent).includes('Weekly retention'));assert.ok((await page.locator('.receipt-item').first().textContent()).includes('Mobile only'));
+ console.log('PASS: configured AI chat recovers from errors, preserves notes, sends only approved context, and renders the draft and receipt. Endpoint mocked; no live inference claim.');await browser.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});
