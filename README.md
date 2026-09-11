@@ -17,7 +17,11 @@ Open http://127.0.0.1:4173. No frontend installation is necessary.
 
 ## What works
 
-- A chat workspace: type `/prd [feature]`, review context in the side panel, and receive the draft in the conversation. There are no walkthrough screens or scripted before/after outputs.
+- A simple chat workspace: type a natural request such as `/PRD Help me draft a PRD for "Certificate Alert Filtering". Please reference September launch decision and Engineering handoff, and update the wiki in Confluence.`
+- A compact context popup appears automatically. Select relevant facts, inspect sources, resolve conflicts, edit wording, and approve the selected context in one action. The context side panel stays closed by default.
+- Explicit source names are matched to project documents. Missing references are requested from the user rather than invented. The starter fills the composer; the user chooses when to send it.
+- The draft appears in the conversation with a receipt and a **Review wiki update** action. Review current versus proposed content, approve the update, and open the resulting wiki preview. Canceling does not write anything.
+- **Confluence is not connected.** Wiki updates are real state changes in a local session preview, not external MCP calls. Preview pages have versions and immutable result snapshots. The optional connection details explain where a production MCP connector would fit.
 - Separate projects, multiple conversations, and reuse of approved project context across new chats in the same browser session.
 - Example CloudShield source documents, conflict resolution, approve/edit/reject, inclusion controls, and exact source excerpts.
 - Paste personal project notes or attach `.txt`/`.md` files. Local extraction works by line and produces a **template outline**, visibly labeled as local drafting. Free-form rewriting requires live AI.
@@ -25,7 +29,7 @@ Open http://127.0.0.1:4173. No frontend installation is necessary.
 - Optional live AI backend: extraction with source-substring validation and one draft receiving only approved context. Raw source notes are not sent during drafting.
 - Draft, context, receipt, and local session-event downloads. Refresh clears the session; no external analytics collection.
 
-Company integrations, enterprise identity, agent permissions, and Confluence publishing are simulated. Receipt snapshots record what was supplied to the generator; they do not prove which facts influenced a model. Review is explicitly attributed to the visitor in the current browser session, not to a verified company owner.
+Company integrations, enterprise identity, agent permissions, and Confluence publishing are simulated. Receipt snapshots record what was supplied to the generator; they do not prove which facts influenced a model. Review is explicitly attributed to the visitor in the current browser session, not to a verified company owner. Opening the local HTML file directly redirects to the public site, because module scripts require an HTTP server.
 
 ## Publish GitHub Pages
 

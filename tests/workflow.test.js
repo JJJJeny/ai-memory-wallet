@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parseRequest,contextForRequest,writeWikiPreview} from '../public/workflow.js';
+import {sources,sampleMemories} from '../public/core.js';
+test('natural PRD request separates feature, references and wiki intent',()=>{const p=parseRequest('/PRD Help me draft a PRD for "Certificate Alert Filtering". Please reference September launch decision and Engineering handoff, and update the wiki in Confluence.',sources);assert.equal(p.title,'Certificate Alert Filtering');assert.deepEqual(p.sourceIds,['s2','s3']);assert.deepEqual(p.missing,[]);assert.equal(p.wantsWiki,true);});
+test('unavailable references are explicit, not invented',()=>{const p=parseRequest('/PRD help me to draft a PRD of "Mobile Checkout", please reference x, y, and z, and directly update the wiki to Confluence',sources);assert.equal(p.title,'Mobile Checkout');assert.deepEqual(p.missing,['x','y','z']);assert.equal(p.wantsWiki,true);});
+test('only referenced source context is proposed',()=>{const p=parseRequest('/PRD Checkout. Please reference Engineering handoff.',sources);assert.deepEqual(contextForRequest(sampleMemories(),p).map(m=>m.id),['m5','m6']);});
+test('wiki preview updates only on explicit write; snapshots are independent and stale writes fail',()=>{const pages={};const v1=writeWikiPreview(pages,{title:'Checkout',body:'Version one',expectedVersion:0});assert.equal(v1.destination,'local-preview');const v2=writeWikiPreview(pages,{title:'Checkout',body:'Version two',expectedVersion:1});assert.equal(v2.version,2);assert.equal(v1.body,'Version one');assert.throws(()=>writeWikiPreview(pages,{title:'Checkout',body:'Stale content',expectedVersion:0}));assert.equal(pages.checkout.body,'Version two');});
