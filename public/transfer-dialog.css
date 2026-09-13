@@ -1,0 +1,39 @@
+.wallet-transfer-overlay { position: fixed; inset: 0; z-index: 100; background: #17162566; display: flex; align-items: center; justify-content: center; padding: 24px; }
+/* Let the original wallet grid shrink on small phones instead of widening the page. */
+main .grid, main .grid > * { min-width: 0; }
+.wallet-transfer { width: 100%; max-width: 600px; max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: hidden; background: #fff; color: #26252a; border: 1px solid #e6e4e1; border-radius: 16px; box-shadow: 0 24px 80px #17162533; font-size: 14px; }
+.wallet-transfer-header { padding: 24px; display: flex; gap: 16px; justify-content: space-between; border-bottom: 1px solid #eae8e5; flex-shrink: 0; }
+.wallet-transfer h2 { font-size: 19px; font-weight: 600; line-height: 1.35; }
+.wallet-transfer p { color: #68656c; line-height: 1.55; margin-top: 6px; }
+.wallet-transfer button { cursor: pointer; border-radius: 8px; border: 1px solid #d9d6df; padding: 9px 13px; background: white; font-weight: 500; }
+.wallet-transfer button:hover { background: #f6f4fb; }
+.wallet-transfer button:focus-visible, .wallet-transfer input:focus-visible, .wallet-transfer summary:focus-visible { outline: 3px solid #a89bff; outline-offset: 3px; }
+.wallet-transfer .wallet-close { align-self: flex-start; font-size: 24px; padding: 0 8px; border: 0; line-height: 1.4; }
+.wallet-transfer-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 24px; }
+.wallet-transfer fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.wallet-transfer legend, .wallet-transfer h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.wallet-destinations > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.wallet-destinations button[aria-pressed="true"] { background: #f0edff; border-color: #6851ed; color: #4935c4; }
+.wallet-transfer .wallet-context-list { margin-top: 26px; }
+.wallet-context-list > p { margin: -5px 0 12px; font-size: 12px; }
+.wallet-context-row { display: flex; gap: 12px; padding: 13px 0; border-top: 1px solid #efedeb; cursor: pointer; }
+.wallet-context-row input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 3px; accent-color: #6650e8; }
+.wallet-context-row > span { min-width: 0; }
+.wallet-context-row strong { font-weight: 500; line-height: 1.5; display: block; overflow-wrap: anywhere; }
+.wallet-transfer small { display: block; color: #77727d; font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+.wallet-transfer .wallet-warning { display: block; color: #886017; font-size: 12px; margin-top: 6px; line-height: 1.5; }
+.wallet-context-row.is-blocked { cursor: default; background: #faf9f7; }
+.wallet-transfer-footer { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #eae8e5; flex-shrink: 0; background: #fff; }
+.wallet-transfer-footer > span { color: #68656c; font-size: 13px; }
+.wallet-transfer .wallet-primary { background: #6350df; color: #fff; border-color: #6350df; }
+.wallet-transfer .wallet-primary:hover { background: #5341cc; }
+.wallet-transfer button:disabled { opacity: .45; cursor: not-allowed; }
+.wallet-notice { padding: 10px 12px; border-radius: 8px; background: #f3f0ff; color: #56419d; font-size: 12px; margin-bottom: 20px; }
+.wallet-preview-item { margin-top: 18px; padding-top: 18px; border-top: 1px solid #eae8e5; }
+.wallet-preview-item h4 { font-weight: 600; }
+.wallet-context-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.wallet-export { margin-top: 24px; padding-top: 16px; border-top: 1px solid #eae8e5; }
+.wallet-export summary { cursor: pointer; font-weight: 500; }
+.wallet-export-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.wallet-export blockquote { background: #f6f5f8; padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 13px; }
+@media (max-width: 600px) { .wallet-transfer-overlay { padding: 12px; } .wallet-transfer { max-height: calc(100dvh - 24px); } .wallet-transfer-header, .wallet-transfer-body { padding: 18px; } .wallet-transfer-footer { padding: 14px 18px; } .wallet-destinations > div { gap: 6px; } .wallet-destinations button { padding: 10px 4px; } }
