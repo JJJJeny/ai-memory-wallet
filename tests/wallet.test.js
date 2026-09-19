@@ -17,6 +17,11 @@ import {
   validateCardInput,
   validateProposal,
 } from '../public/wallet-core.js';
+import {
+  DEMO_BANNER,
+  DemoWallet,
+  memoryStorage,
+} from '../public/demo-store.js';
 
 const preference = validateCardInput({
   title: 'Be concise',
@@ -138,7 +143,81 @@ test('My Wallet UI is one mixed list with select, preview, and copy', () => {
   assert.doesNotMatch(app, /data-tab=/);
   assert.doesNotMatch(app, /Team workspace/);
   assert.doesNotMatch(app, /Connect to (ChatGPT|Claude)/);
+  assert.match(app, /Continue to demo/);
+  assert.match(app, /DEMO_BANNER/);
+  assert.match(app, /demo-store\.js/);
   assert.match(css, /\.preview-panel/);
+  assert.match(css, /\.demo-banner/);
+  assert.match(css, /button\.btn-primary/);
+});
+
+test('demo store keeps cards in provided storage and supports the copy loop data', () => {
+  const storage = memoryStorage();
+  const wallet = new DemoWallet(storage);
+  const createdPref = wallet.create({ ...preference, source: 'template', isTemplate: true });
+  const createdWork = wallet.create({ ...workflow });
+  assert.equal(wallet.list().length, 2);
+  assert.equal(createdPref.isTemplate, true);
+  const text = buildInstructionPackage(wallet.list(), [createdPref.id]);
+  assert.match(text, /Preference: Be concise/);
+  assert.doesNotMatch(text, /Review a landing page/);
+
+  wallet.update(createdWork.id, { ...workflow, instructions: 'Keep every commitment.' });
+  assert.equal(wallet.list().find((card) => card.id === createdWork.id).instructions, 'Keep every commitment.');
+  const copy = wallet.duplicate(createdPref.id);
+  assert.equal(copy.title, 'Be concise (copy)');
+  wallet.remove(createdPref.id);
+  assert.equal(wallet.list().some((card) => card.id === createdPref.id), false);
+
+  const again = new DemoWallet(storage);
+  assert.equal(again.list().length, 2);
+  assert.equal(DEMO_BANNER, 'Demo — cards stay in this browser only; not private / not the full server wallet');
+});
+
+test('demo import never silently overwrites and session can leave then continue', () => {
+  const storage = memoryStorage();
+  const wallet = new DemoWallet(storage);
+  const existing = wallet.create({ ...preference });
+  const preview = wallet.previewImport({
+    version: 1,
+    kind: 'ai-memory-wallet',
+    cards: [
+      { id: existing.id, ...preference, title: 'Incoming', instructions: 'Incoming text' },
+      { ...workflow, id: 'new-skill' },
+    ],
+  });
+  assert.equal(preview.conflictCount, 1);
+  assert.equal(preview.createCount, 1);
+  assert.throws(() => wallet.commitImport({
+    version: 1,
+    kind: 'ai-memory-wallet',
+    cards: [{ id: existing.id, ...preference, title: 'Incoming', instructions: 'Incoming text' }],
+  }, {}));
+  const result = wallet.commitImport({
+    version: 1,
+    kind: 'ai-memory-wallet',
+    cards: [
+      { id: existing.id, ...preference, title: 'Incoming', instructions: 'Incoming text' },
+      { ...workflow, id: 'new-skill' },
+    ],
+  }, { [existing.id]: 'keep-both' });
+  assert.equal(result.created.length, 2);
+  assert.equal(wallet.list().some((card) => card.title === 'Be concise'), true);
+  wallet.close();
+  assert.equal(wallet.isOpen(), false);
+  wallet.open();
+  assert.equal(wallet.isOpen(), true);
+});
+
+test('Pages demo copy is honest and does not claim a private server wallet', () => {
+  const app = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
+  const store = readFileSync(new URL('../public/demo-store.js', import.meta.url), 'utf8');
+  assert.match(store, /cards stay in this browser only/);
+  assert.match(store, /not private/);
+  assert.match(store, /not the full server wallet/);
+  assert.match(app, /Do not put real private cards/);
+  assert.match(app, /GitHub Pages cannot/);
+  assert.doesNotMatch(app, /Connect to (ChatGPT|Claude)/);
 });
 
 function walkFiles(dir, acc = []) {

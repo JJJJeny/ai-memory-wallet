@@ -1,6 +1,6 @@
 # Architecture choices
 
-Investigated the existing repository (compiled Figma prototype, team/PRD chat workspace, Cloudflare Worker for PRD extraction). Those pieces could not support a personal card wallet with sign-in and private storage without a new maintainable UI and server. This MVP **extends the same repo**: keeps GitHub Pages for a public landing, archives the visual prototype, and adds a small Node app.
+Investigated the existing repository (compiled Figma prototype, team/PRD chat workspace, Cloudflare Worker for PRD extraction). Those pieces could not support a personal card wallet with sign-in and private storage without a new maintainable UI and server. This MVP **extends the same repo**: keeps GitHub Pages for a public **browser-only demo** (localStorage, no private claims), archives the visual prototype under `/prototype/`, and adds a small Node app for the real private wallet.
 
 ## Stack
 
@@ -24,7 +24,7 @@ The server API (`/api/cards`, `/api/auth/*`, `/api/import`) is small enough to p
 ## Trust boundaries
 
 - `public/` is visible. It must never contain API keys or other people’s cards.
-- GitHub Pages publishes `public/` as a landing page. Wallet contents are not in those files.
+- GitHub Pages publishes `public/` as a browser-only demo. Example templates may ship in JS; visitors’ demo cards stay in their browser, not in the repo. That is not a private database.
 - The browser talks only to this app’s `/api`. Model keys are not sent to the browser.
 - Imported and pasted text is stored and shown as text (`textContent` / escaped HTML). It is not executed.
 - AI output is validated with the same card rules as manual input. Invalid output is an error, not a canned success.

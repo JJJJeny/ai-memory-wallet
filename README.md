@@ -9,7 +9,7 @@ This is a **personal** wallet for Jenny Yang (and anyone she shares the running 
 
 You **Select** cards, **Preview** the exact instruction text, and **Copy** it into ChatGPT, Claude, Cursor, or any other chat. **This app does not sign into those products, sync into them, or change how a model behaves.** Connecting those apps is a later idea — tonight the path is copy and paste.
 
-The old visual prototype (sample data only) is at [public/prototype](public/prototype/index.html) and, after Pages deploy, `/prototype/`.
+The public GitHub Pages site is a **browser-only demo** of that same loop. It is not a private wallet. The old visual prototype (sample data only) is at [public/prototype](public/prototype/index.html) and, after Pages deploy, `/prototype/`.
 
 ## What you can do
 
@@ -33,7 +33,7 @@ npm start
 
 Open http://127.0.0.1:4173
 
-### 60-second demo
+### 60-second demo (private wallet on your computer)
 
 1. Enter your email. A sign-in link appears on the page and in the terminal. Click it.
 2. **Add** one Preference and one Skill, or click **Add labeled examples**.
@@ -44,11 +44,29 @@ Open http://127.0.0.1:4173
 
 Your cards are stored in `data/wallet.db` on this computer. Signing out and signing back in with the same email still shows them. Refreshing the page keeps you signed in. Use **Export** if you want a backup file.
 
+The public Pages URL uses the same Select → Preview → Copy UI, but cards stay in that browser only. See below.
+
 ## Public website vs your private cards
 
-https://jjjjeny.github.io/ai-memory-wallet/ can show the **landing page and sign-in explanation only**. It must **not** hold your real cards. GitHub Pages cannot keep a private database.
+https://jjjjeny.github.io/ai-memory-wallet/ is a **public browser-only demo**. GitHub Pages deploys only the `public/` folder. It cannot run the Node + SQLite server.
 
-Do not type real private cards into the public Pages site. Use `npm start` on your computer, or a host you control, before saving anything personal.
+On that URL you can Add labeled examples, Select, Preview, and Copy. Cards stay in **this browser** (localStorage when available). They are **not private** and this is **not the full server wallet**. Anyone with access to the browser can see them. Clearing site data deletes them.
+
+**Do not put real private cards on Pages.** Use `npm start` on your computer, or a host you control, before saving anything personal.
+
+Banner on the demo:
+
+> Demo — cards stay in this browser only; not private / not the full server wallet
+
+To try the same static demo locally (no Node API):
+
+```sh
+npx serve public
+```
+
+Then open the URL it prints (often http://127.0.0.1:3000). You should see **My Wallet**, the demo banner, **Add labeled examples**, Select, Preview, and Copy.
+
+The old Figma/team prototype is only at `/prototype/`. It is not the homepage.
 
 ## Optional hosting (only if you want it on the internet)
 

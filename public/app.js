@@ -5,14 +5,18 @@ import {
   exportPayload,
   filterCards,
 } from './wallet-core.js';
+import { DEMO_BANNER, DemoWallet } from './demo-store.js';
 
 const root = document.getElementById('app');
 const toastEl = document.getElementById('toast');
 const apiBase = (window.MEMORY_WALLET_CONFIG?.apiBase || '').replace(/\/$/, '');
+const demo = new DemoWallet();
 
 const state = {
   ready: false,
   apiUp: false,
+  demoMode: false,
+  demoOpen: false,
   status: null,
   user: null,
   cards: [],
@@ -23,6 +27,14 @@ const state = {
   error: '',
   loading: false,
 };
+
+function showingWallet() {
+  return (state.apiUp && state.user) || (state.demoMode && state.demoOpen);
+}
+
+function accountLabel() {
+  return state.demoMode ? 'Demo · this browser only' : (state.user?.email || '');
+}
 
 function toast(message) {
   toastEl.textContent = message;
@@ -55,8 +67,31 @@ async function api(path, options = {}) {
 }
 
 async function refreshCards() {
+  if (state.demoMode) {
+    state.cards = demo.list();
+    return;
+  }
   const data = await api('/api/cards');
   state.cards = data.cards;
+}
+
+function enterDemo() {
+  demo.open();
+  state.demoMode = true;
+  state.demoOpen = true;
+  state.user = { email: 'Demo · this browser only' };
+  state.cards = demo.list();
+  state.notice = '';
+  state.error = '';
+}
+
+function leaveDemo() {
+  demo.close();
+  state.demoOpen = false;
+  state.selected = new Set();
+  state.dialog = null;
+  state.notice = '';
+  state.error = '';
 }
 
 function filtered() {
@@ -84,7 +119,9 @@ function cardForm(card = {}, extras = '') {
       <div class="field">
         <label for="source-text">Paste notes or describe the card</label>
         <textarea id="source-text" name="sourceText" data-focus placeholder="Example: Be concise. Ask before rewriting. Or paste a conversation snippet.">${escapeHtml(card.sourceText || '')}</textarea>
-        <p class="hint">Saving stores only the fields below. Asking AI to draft sends this text to the model you configured on the server.</p>
+        <p class="hint">${state.demoMode
+          ? 'Saving stores only the fields below, in this browser. Ask AI to draft is not available in this public demo.'
+          : 'Saving stores only the fields below. Asking AI to draft sends this text to the model you configured on the server.'}</p>
       </div>
       <div class="field">
         <label for="title">Title</label>
@@ -172,10 +209,14 @@ function landing(apiMissing) {
         <p>This is a personal wallet. It does not create a team workspace, connect to those assistants, or change how a model behaves by itself.</p>
       </section>
       ${apiMissing ? `
-        <div class="notice">
-          This public page is only a landing page. It cannot store your private cards.
-          Run the app on your computer or a host you control so sign-in and storage stay yours.
-          Setup is in the README.
+        <p class="demo-banner" role="status">${escapeHtml(DEMO_BANNER)}</p>
+        <div class="panel">
+          <h2>Try the 60-second demo</h2>
+          <p class="hint">Add labeled examples, Select a card, Preview the exact text, then Copy. Paste into Claude or ChatGPT yourself. This page does not send it there and does not sign into those products.</p>
+          <div class="row">
+            <button class="btn btn-primary" id="demo-btn" type="button" data-focus>Continue to demo</button>
+          </div>
+          <p class="hint">GitHub Pages cannot run the Node + SQLite wallet. Cards you add here stay in this browser. Do not put real private cards on this public site. For a private wallet on a computer you control, run <code>npm start</code> — see the README.</p>
         </div>
       ` : `
         <div class="panel">
@@ -193,7 +234,9 @@ function landing(apiMissing) {
       `}
       <ul class="landing-list">
         <li>Add a card yourself in a few fields. Nothing is auto-approved.</li>
-        <li>If AI help is configured, it can suggest a card you still review and edit.</li>
+        ${apiMissing
+          ? '<li>The public demo stores cards in this browser only. It is not private and is not the full server wallet.</li>'
+          : '<li>If AI help is configured, it can suggest a card you still review and edit.</li>'}
         <li>Export JSON backups. Import never overwrites a card unless you choose replace.</li>
       </ul>
     </main>
@@ -208,16 +251,19 @@ function wallet() {
     <header class="top">
       <div class="brand">
         <strong>My Wallet</strong>
-        <span class="account">${escapeHtml(state.user.email)}</span>
+        <span class="account">${escapeHtml(accountLabel())}</span>
       </div>
       <div class="row">
         <button class="btn btn-primary" id="add-btn" type="button">Add</button>
         <button class="btn" id="export-btn" type="button">Export</button>
         <button class="btn" id="import-btn" type="button">Import</button>
         <button class="btn" id="privacy-btn" type="button">Privacy</button>
-        <button class="btn" id="signout-btn" type="button">Sign out</button>
+        ${state.demoMode
+          ? '<button class="btn" id="leave-demo-btn" type="button">Leave demo</button>'
+          : '<button class="btn" id="signout-btn" type="button">Sign out</button>'}
       </div>
     </header>
+    ${state.demoMode ? `<p class="demo-banner demo-banner-bar" role="status">${escapeHtml(DEMO_BANNER)}</p>` : ''}
     <main id="main" class="main wallet-main">
       ${state.notice ? `<p class="success">${escapeHtml(state.notice)}</p>` : ''}
       ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ''}
@@ -279,10 +325,12 @@ function wallet() {
       </div>
     </main>
     <footer class="main footer">
-      ${state.status?.ai?.enabled
-        ? 'AI drafting is on. It only runs when you click Ask AI to draft, and it sends the text in that box.'
-        : 'AI drafting is off. You can still add, edit, and copy cards by hand.'}
-      Analytics are off. Connecting ChatGPT or Claude is a later idea — tonight, copy and paste.
+      ${state.demoMode
+        ? 'Browser-only demo. Cards stay in this browser; they are not private. Ask AI to draft needs the local Node server. Connecting ChatGPT or Claude is a later idea — tonight, copy and paste. <a href="./prototype/">Old visual prototype</a>'
+        : `${state.status?.ai?.enabled
+          ? 'AI drafting is on. It only runs when you click Ask AI to draft, and it sends the text in that box.'
+          : 'AI drafting is off. You can still add, edit, and copy cards by hand.'}
+      Analytics are off. Connecting ChatGPT or Claude is a later idea — tonight, copy and paste.`}
     </footer>
   `;
 }
@@ -335,9 +383,16 @@ function dialogHtml() {
   if (dialog.type === 'privacy') {
     return `<div class="overlay" id="overlay"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="d-title">
       <h2 id="d-title">Privacy and deletion</h2>
-      <p>Your cards are stored in the database on the computer or host running this app, under your signed-in email. Another signed-in account cannot read or change them.</p>
-      <p>Deleting a card removes it from this app’s database immediately. There is no recycle bin here. Your host may still have its own backups or logs. Export a JSON copy if you want your own backup.</p>
-      <p>This app does not claim encryption-at-rest, SOC 2, HIPAA, or other compliance badges. Analytics are off. Optional AI runs only after you click Ask AI to draft.</p>
+      ${state.demoMode ? `
+        <p>This is a public browser-only demo. Cards stay in this browser (localStorage when available). They are not private. Anyone who uses this browser can see them. Clearing site data deletes them.</p>
+        <p>This is not the full server wallet. GitHub Pages cannot keep a private database. Do not save real private cards here.</p>
+        <p>For a private wallet, run <code>npm start</code> on a computer you control. That path stores cards in SQLite under your signed-in email.</p>
+        <p>This demo does not connect to ChatGPT or Claude. Copy the preview text and paste it yourself.</p>
+      ` : `
+        <p>Your cards are stored in the database on the computer or host running this app, under your signed-in email. Another signed-in account cannot read or change them.</p>
+        <p>Deleting a card removes it from this app’s database immediately. There is no recycle bin here. Your host may still have its own backups or logs. Export a JSON copy if you want your own backup.</p>
+        <p>This app does not claim encryption-at-rest, SOC 2, HIPAA, or other compliance badges. Analytics are off. Optional AI runs only after you click Ask AI to draft.</p>
+      `}
       <button class="btn" id="cancel-dialog" type="button">Close</button>
     </section></div>`;
   }
@@ -349,10 +404,19 @@ function render() {
     root.innerHTML = '<p class="banner">Loading…</p>';
     return;
   }
-  root.innerHTML = (state.apiUp && state.user ? wallet() : landing(!state.apiUp)) + dialogHtml();
+  root.innerHTML = (showingWallet() ? wallet() : landing(!state.apiUp)) + dialogHtml();
 }
 
 function bind() {
+  document.getElementById('demo-btn')?.addEventListener('click', () => {
+    enterDemo();
+    render();
+  });
+  document.getElementById('leave-demo-btn')?.addEventListener('click', () => {
+    leaveDemo();
+    render();
+  });
+
   document.getElementById('signin-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const status = document.getElementById('signin-status');
@@ -403,7 +467,11 @@ function bind() {
   });
   document.getElementById('add-examples')?.addEventListener('click', async () => {
     try {
-      for (const example of EXAMPLE_CARDS) await api('/api/cards', { method: 'POST', body: example });
+      if (state.demoMode) {
+        for (const example of EXAMPLE_CARDS) demo.create(example);
+      } else {
+        for (const example of EXAMPLE_CARDS) await api('/api/cards', { method: 'POST', body: example });
+      }
       await refreshCards();
       state.notice = 'Added labeled examples. They are not your personal data. Delete any you do not want.';
       render();
@@ -429,7 +497,8 @@ function bind() {
     if (card) openDialog({ type: 'card', card: { ...card } });
   }));
   document.querySelectorAll('[data-dup]').forEach((button) => button.addEventListener('click', async () => {
-    await api(`/api/cards/${button.dataset.dup}/duplicate`, { method: 'POST' });
+    if (state.demoMode) demo.duplicate(button.dataset.dup);
+    else await api(`/api/cards/${button.dataset.dup}/duplicate`, { method: 'POST' });
     await refreshCards();
     toast('Duplicated.');
     render();
@@ -437,7 +506,8 @@ function bind() {
   document.querySelectorAll('[data-del]').forEach((button) => button.addEventListener('click', async () => {
     const card = state.cards.find((item) => item.id === button.dataset.del);
     if (!card || !confirm(`Delete “${card.title}”? This removes it from this app immediately. Export first if you want a backup.`)) return;
-    await api(`/api/cards/${button.dataset.del}`, { method: 'DELETE' });
+    if (state.demoMode) demo.remove(button.dataset.del);
+    else await api(`/api/cards/${button.dataset.del}`, { method: 'DELETE' });
     state.selected.delete(button.dataset.del);
     await refreshCards();
     toast('Deleted.');
@@ -473,8 +543,15 @@ function bind() {
     const errorEl = document.getElementById('form-error');
     try {
       const current = state.dialog.card || {};
-      if (current.id) await api(`/api/cards/${current.id}`, { method: 'PATCH', body: { ...values, source: current.source, isTemplate: current.isTemplate } });
-      else await api('/api/cards', { method: 'POST', body: { ...values, source: 'manual' } });
+      const payload = { ...values, source: current.source || 'manual', isTemplate: current.isTemplate };
+      if (state.demoMode) {
+        if (current.id) demo.update(current.id, payload);
+        else demo.create({ ...values, source: 'manual' });
+      } else if (current.id) {
+        await api(`/api/cards/${current.id}`, { method: 'PATCH', body: payload });
+      } else {
+        await api('/api/cards', { method: 'POST', body: { ...values, source: 'manual' } });
+      }
       await refreshCards();
       closeDialog();
       toast('Card saved.');
@@ -487,6 +564,11 @@ function bind() {
     const form = document.getElementById('card-form');
     const errorEl = document.getElementById('form-error');
     errorEl.hidden = false;
+    if (state.demoMode) {
+      errorEl.className = 'error';
+      errorEl.textContent = 'Ask AI to draft is not available in this browser-only demo. It needs the Node server (npm start) and an optional model key on that server. This page does not connect to ChatGPT or Claude.';
+      return;
+    }
     errorEl.className = 'notice';
     errorEl.textContent = 'Asking AI for a draft. Review it before saving. Nothing is stored yet.';
     try {
@@ -503,8 +585,11 @@ function bind() {
     if (!file) return;
     const text = await file.text();
     try {
-      const preview = await api('/api/import/preview', { method: 'POST', body: { payload: JSON.parse(text) } });
-      state.dialog = { type: 'import', preview, payload: JSON.parse(text) };
+      const payload = JSON.parse(text);
+      const preview = state.demoMode
+        ? demo.previewImport(payload, text.length)
+        : await api('/api/import/preview', { method: 'POST', body: { payload } });
+      state.dialog = { type: 'import', preview, payload };
       render();
     } catch (error) {
       toast(error.message);
@@ -516,7 +601,9 @@ function bind() {
       resolutions[conflict.existing.id] = document.querySelector(`input[name="res-${conflict.existing.id}"]:checked`)?.value;
     }
     try {
-      const result = await api('/api/import', { method: 'POST', body: { payload: state.dialog.payload, resolutions } });
+      const result = state.demoMode
+        ? demo.commitImport(state.dialog.payload, resolutions)
+        : await api('/api/import', { method: 'POST', body: { payload: state.dialog.payload, resolutions } });
       await refreshCards();
       closeDialog();
       toast(`Imported ${result.created.length} new card(s). Replaced ${result.replaced.length}. Skipped ${result.skipped}.`);
@@ -536,19 +623,38 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && state.dialog) closeDialog();
 });
 
-async function boot() {
+async function probeApi() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 2500);
   try {
-    state.status = await api('/api/status');
+    const status = await api('/api/status', { signal: controller.signal });
+    if (status?.ok === true && status.persistence === 'sqlite') return status;
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function boot() {
+  const status = await probeApi();
+  if (status) {
+    state.status = status;
     state.apiUp = true;
     const me = await api('/api/me');
     state.user = me.user;
     if (state.user) await refreshCards();
     if (new URLSearchParams(location.search).get('signed-in') === '1') {
-      state.notice = 'Signed in. Your cards stay on this host, not on the public landing page.';
-      history.replaceState({}, '', '/');
+      state.notice = 'Signed in. Your cards stay on this host, not on the public GitHub Pages demo.';
+      history.replaceState({}, '', location.pathname);
     }
-  } catch {
+  } else {
     state.apiUp = false;
+    state.demoMode = true;
+    const forceDemo = new URLSearchParams(location.search).get('demo') === '1';
+    if (forceDemo) demo.open();
+    if (demo.isOpen()) enterDemo();
   }
   state.ready = true;
   render();
