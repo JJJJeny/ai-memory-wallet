@@ -2,14 +2,26 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Explore personal skills, reviewed team decisions, and portable context in the AI Memory Wallet interactive prototype.">
-  <title>AI Memory Wallet</title>
+  <meta name="description" content="Save your skills, knowledge, and preferences. Bring what works to your next AI conversation.">
+  <meta name="referrer" content="no-referrer">
+  <title>AI Memory Wallet — Your personal wallet</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23162036'/%3E%3Cpath d='M10 12h20v17H10z' fill='none' stroke='%23a4efcc' stroke-width='3'/%3E%3Cpath d='M24 19h8v6h-8z' fill='%23a4efcc'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./figma-assets/index-dzytipEj.css">
-  <link rel="stylesheet" href="./transfer-dialog.css">
+  <link rel="stylesheet" href="./personal.css">
 </head>
 <body>
-  <div id="root"></div>
-  <script>if(location.protocol==='file:') location.replace('https://jjjjeny.github.io/ai-memory-wallet/');</script>
-  <script type="module" src="./figma-assets/index-wallet.js"></script>
+  <header class="topbar"><div class="brand"><span class="logo" aria-hidden="true">▱</span>AI Memory Wallet</div><div class="toolbar"><button id="settings" class="quiet">Settings</button><button id="add">+ Add</button></div></header>
+  <main>
+    <section class="intro"><div class="avatar">You</div><div><h1>Your wallet travels with you.</h1><p id="item-count"></p></div></section>
+    <section id="cards" class="cards" aria-label="Your wallet categories"></section>
+    <section class="chat" aria-label="Try your wallet">
+      <div class="chat-head"><div><h2>Try your wallet</h2><div class="connection"><span id="connection-dot" class="dot"></span><span id="connection">AI not connected</span></div></div><div class="chat-tools"><button id="select-context">Choose context</button><button id="new-chat" class="quiet">New chat ↗</button></div></div>
+      <div id="selection" class="selection-strip"></div>
+      <div id="messages" class="messages" role="log" aria-label="Conversation" aria-live="polite"></div>
+      <form id="composer" class="composer"><textarea id="prompt" aria-label="Message" placeholder="Ask something, or describe what you want to remember…" maxlength="4000" rows="2"></textarea><div class="composer-bottom"><span>Enter to send · Shift + Enter for a new line</span><button id="send" class="primary" type="submit">Send ↑</button></div></form>
+      <p class="notice">When connected, sending shares your message, recent conversation, and selected cards with your backend and AI provider. Nothing is saved to your wallet without your confirmation.</p>
+    </section>
+    <footer class="footer"><span>Stored in this browser · No cloud sync · Export a backup in Settings</span><span>Your context. Your choice.</span></footer>
+  </main>
+  <dialog id="dialog" aria-labelledby="dialog-title"></dialog><div id="toast" class="toast" role="status"></div>
+  <script src="./config.js"></script><script type="module" src="./personal.js"></script>
 </body></html>

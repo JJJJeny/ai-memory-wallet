@@ -5,6 +5,8 @@
   "ai": { "binding": "AI" },
   "vars": {
     "API_ENABLED": "false",
+    "AI_PROVIDER": "workers-ai",
+    "OPENAI_MODEL": "",
     "ALLOWED_ORIGINS": "https://jjjjeny.github.io,http://127.0.0.1:4173"
   },
   "ratelimits": [
