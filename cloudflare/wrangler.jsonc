@@ -1,0 +1,13 @@
+{
+  "name": "ai-memory-wallet-live",
+  "account_id": "da93266d6b219a2c0cd85355c61b1700",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-19",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "ALLOWED_ORIGIN": "https://jjjjeny.github.io", "OPENAI_MODEL": "gpt-4o-mini" },
+  "durable_objects": { "bindings": [{ "name": "BUDGET", "class_name": "WalletBudget" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["WalletBudget"] }],
+  "ratelimits": [{ "name": "LOGIN_LIMIT", "namespace_id": "52001", "simple": { "limit": 10, "period": 60 } }],
+  "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false, "head_sampling_rate": 0.01 }, "traces": { "enabled": true, "head_sampling_rate": 0.01 } }
+}

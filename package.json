@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/wallet.test.js tests/api.test.js tests/personal-server.test.js",
+    "test": "node --test tests/wallet.test.js tests/api.test.js tests/personal-server.test.js tests/wallet-ai.test.js",
     "check": "node --check server/index.js && node --check server/app.js && node --check server/auth.js && node --check server/cards.js && node --check server/ai.js && node --check public/wallet-core.js && node --check public/demo-store.js && node --check public/app.js",
     "dev": "node server/index.js",
     "start": "node server/index.js"
+  },
+  "devDependencies": {
+    "wrangler": "4.135.0"
   }
 }

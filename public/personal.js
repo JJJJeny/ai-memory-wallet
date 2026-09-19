@@ -4,20 +4,24 @@ const names = { skill: 'Skills', knowledge: 'Knowledge', preference: 'Preference
 const descriptions = { skill: 'Reusable know-how', knowledge: 'Context worth keeping', preference: 'How you like to work' };
 const icons = { skill: '✧', knowledge: '▤', preference: '≋' };
 let items = [], selection = new Set(), messages = [], busy = false, token = '', endpoint = '', storageBroken = false, toastTimer;
-let serverMode=false,user=null,serverStatus=null;
+let serverMode=false,user=null,serverStatus=null,contextVersion=0;
 const node = (tag, text, cls) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (cls) el.className = cls; return el; };
 const button = (text, action, cls = '') => { const el = node('button', text, cls); el.type = 'button'; el.addEventListener('click', action); return el; };
 function toast(text) { $('#toast').textContent = text; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').textContent = '', 6500); }
 try {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) { const parsed = JSON.parse(raw); if (!Array.isArray(parsed) || parsed.length > 200) throw Error(); items = parsed.map(item => { const clean = validateItem(item); if (typeof item.id !== 'string' || item.id.length > 80) throw Error(); return { ...clean, id: item.id, updatedAt: item.updatedAt }; }); if (new Set(items.map(i => i.id)).size !== items.length) throw Error(); }
-  endpoint = localStorage.getItem('wallet.personal.endpoint') || window.MEMORY_WALLET_CONFIG?.apiBase || '';
+  endpoint = window.MEMORY_WALLET_CONFIG?.apiBase || '';
+  token = sessionStorage.getItem('wallet.demo.session') || '';
+  const active=JSON.parse(localStorage.getItem(`${STORAGE_KEY}.active`)||'[]');if(Array.isArray(active))selection=new Set(active.filter(id=>items.some(i=>i.id===id)));
 } catch { storageBroken = true; toast('Saved data could not be loaded. It has not been overwritten. Export the original data from Settings before resetting.'); }
 async function persist(next) {
   if (storageBroken) throw Error('Storage needs recovery in Settings before saving.');
+  const before=JSON.stringify(selectedContext(items,selection));
   if(serverMode){const result=await api('/api/personal/wallet','PUT',{items:next,previous:items});items=result.items;}
   else {localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); items = next;}
   selection = new Set([...selection].filter(id => items.some(i => i.id === id))); renderCards(); renderSelection();
+  if(before!==JSON.stringify(selectedContext(items,selection)))contextVersion++;
 }
 window.addEventListener('storage', event => { if (event.key === STORAGE_KEY) { storageBroken = true; toast('Your wallet changed in another tab. Refresh before editing to avoid overwriting it.'); } });
 function modal(title, subtitle = '') {
@@ -51,7 +55,7 @@ function openCategory(type) {
     if (!matches.length) list.append(node('p', 'No cards here yet. Add your own or edit a starter.', 'empty-list'));
     matches.forEach(item => {
       const row = node('article', undefined, 'item'), actions = node('div', undefined, 'item-actions');
-      actions.append(button(selection.has(item.id) ? 'Selected ✓' : 'Use in chat', () => { toggle(item.id); draw(); }), button('Edit', () => editItem(item)), button('Duplicate', () => editItem({ ...item, id: undefined })), button('Delete', async () => {
+      actions.append(button(selection.has(item.id) ? 'Active ✓' : 'Use in chat', () => { toggle(item.id); draw(); }), button('Edit', () => editItem(item)), button('Delete', async () => {
         if (!confirm(`Delete “${item.title}” from this browser? Exported backups are not deleted.`)) return;
         try { await persist(items.filter(i => i.id !== item.id)); draw(); toast('Card deleted. Exported backups are unchanged.'); } catch(e) { toast(e.message); }
       }, 'danger'));
@@ -73,21 +77,27 @@ function editItem(item = { type:'skill' }, proposal = false) {
   title.input.maxLength = 60; title.input.required = true; content.input.maxLength = 1200; content.input.required = true;
   const error = node('p', '', 'error'); error.setAttribute('role','alert');
   const save = node('button', 'Save to wallet', 'primary'); save.type = 'submit';
-  form.append(category.wrapper, title.wrapper, content.wrapper, node('p', 'Up to 1,200 characters. Saving does not automatically select this card for chat.', 'small'), error, save);
+  const useLabel=node('label',undefined,'select-item'),use=node('input');use.type='checkbox';use.checked=item.id?selection.has(item.id):item.type==='preference';useLabel.append(use,node('span','Use in my next reply'));category.input.onchange=()=>{if(!item.id)use.checked=category.input.value==='preference';};
+  form.append(category.wrapper, title.wrapper, content.wrapper, useLabel, node('p', 'Up to 1,200 characters. Active cards guide your next reply; previous answers stay unchanged.', 'small'), error, save);
   form.onsubmit = async event => {
     event.preventDefault(); try {
       const clean = validateItem({ type: category.input.value, title: title.input.value, text: content.input.value });
       const updated = { ...clean, id: item.id || crypto.randomUUID(), updatedAt: new Date().toISOString() };
       if (!item.id && items.length >= 200) throw Error('Your wallet is full (200 cards). Export a backup before removing cards.');
-      save.disabled=true;await persist(item.id ? items.map(i => i.id === item.id ? updated : i) : [...items, updated]); $('#dialog').close(); toast(`Saved to ${names[clean.type]}.`);
+      save.disabled=true;await persist(item.id ? items.map(i => i.id === item.id ? updated : i) : [...items, updated]);
+      const saved=items.find(i=>i.id===updated.id)||items.find(i=>i.title===updated.title&&i.text===updated.text);
+      if(saved&&use.checked!==selection.has(saved.id))toggle(saved.id);
+      $('#dialog').close(); toast(`Saved to ${names[clean.type]}${saved&&selection.has(saved.id)?' · active for your next reply':''}.`);
     } catch(e) { error.textContent = e.message || 'Could not save. Your existing cards are unchanged.';save.disabled=false; }
   }; body.append(form);
 }
-function toggle(id) { if (busy) { toast('Wait for this response before changing context.'); return; } if (!selection.has(id) && selection.size >= 24) { toast('Choose up to 24 cards.'); return; } selection.has(id) ? selection.delete(id) : selection.add(id); renderSelection(); }
+function toggle(id) { if (busy) { toast('Wait for this response before changing context.'); return; } if (!selection.has(id) && selection.size >= 24) { toast('Choose up to 24 cards.'); return; } selection.has(id) ? selection.delete(id) : selection.add(id);contextVersion++;renderSelection();if(messages.length)toast('Context changed. Your next reply starts fresh; earlier replies stay visible.'); }
 function renderSelection() {
+  if(!serverMode)try{localStorage.setItem(`${STORAGE_KEY}.active`,JSON.stringify([...selection]));}catch{ /* Cards remain usable in this session. */ }
   $('#select-context').textContent = `Choose context${selection.size ? ` · ${selection.size}` : ''}`;
   const strip = $('#selection'); strip.replaceChildren();
-  if (!selection.size) strip.append(node('span', 'No wallet context selected', 'small'));
+  if (!selection.size) strip.append(node('span', 'Wallet off · replies use only your message', 'small'));
+  else strip.append(node('span','Active for next reply:','small'));
   items.filter(i => selection.has(i.id)).forEach(item => { const chip = button(`${item.title} ×`, () => toggle(item.id), 'chip'); chip.setAttribute('aria-label', `Remove ${item.title} from chat`); strip.append(chip); });
 }
 function selectContext() {
@@ -108,17 +118,9 @@ function showPackage() {
 function download(text, filename) { const url = URL.createObjectURL(new Blob([text], {type:'application/json'})); const a = node('a'); a.href=url; a.download=filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 function settings() {
   if(serverMode){serverSettings();return;}
-  const body = modal('Settings & backup', 'Your wallet works locally. Live chat requires a private backend.');
-  body.append(node('div', 'Do not enter an OpenAI API key here. It belongs in the backend’s secret settings. The access code below is a separate personal-demo code.', 'warning'));
-  const form = node('form'), url = field('Your backend URL', 'input', endpoint), access = field('Personal access code (this tab only)', 'input', token), error = node('p', '', 'error');
-  url.input.placeholder='https://your-worker.workers.dev'; url.input.type='url'; access.input.type='password'; access.input.autocomplete='off';
-  const save = node('button', 'Save connection settings', 'primary'); save.type='submit';
-  form.append(url.wrapper, access.wrapper, node('p','Sending a message shares it, recent conversation, and selected cards with this backend and its AI provider. Only use a backend you trust. Saving settings does not verify a connection.', 'small'), error, save);
-  form.onsubmit = event => { event.preventDefault(); try {
-    if (access.input.value.startsWith('sk-')) throw Error('That looks like an API key. Do not put it here. Use the separate personal access code.');
-    const target = new URL(url.input.value); if(target.protocol !== 'https:' || target.username || target.password || target.search || target.hash || target.pathname !== '/') throw Error('Enter a trusted HTTPS backend origin, without a path or credentials.');
-    localStorage.setItem('wallet.personal.endpoint', target.origin); endpoint=target.origin; token=access.input.value; updateConnection(); $('#dialog').close(); toast('Settings saved. The connection will be checked when you send a message.');
-  } catch(e) { error.textContent=e.message; } }; body.append(form, button('Disconnect', () => { token=''; endpoint=''; localStorage.removeItem('wallet.personal.endpoint'); updateConnection(); $('#dialog').close(); }, 'quiet'));
+  const body = modal('Your wallet & backups', 'Keep a copy of your saved skills, knowledge, and preferences.');
+  body.append(node('p','Your cards stay in this browser. Only the cards you activate are sent with a chat request. Your API key is protected on Cloudflare and never entered here.','small'));
+  if(token)body.append(button('Lock AI on this tab',()=>{token='';sessionStorage.removeItem('wallet.demo.session');updateConnection();$('#dialog').close();},'quiet'));
   const backup = node('details', undefined, 'backup'); backup.append(node('summary','Storage & backups'),node('p','Cards are stored in this browser, not in a cloud account. Anyone using this browser profile can access them. Clearing site data removes them. Chats are not saved after refresh. Export regularly; backup files are not encrypted.', 'small'));
   backup.append(button('Export wallet', () => download(JSON.stringify({version:1,items},null,2),'memory-wallet-backup.json')));
   const file = field('Import a wallet backup', 'input'); file.input.type='file'; file.input.accept='.json,application/json';
@@ -127,13 +129,20 @@ function settings() {
   const oldManager=node('a','Open previous wallet / recover earlier cards');oldManager.href='./manage.html';oldManager.className='link';backup.append(node('p'),oldManager);
   body.append(backup);
 }
-function updateConnection(verified = false) { $('#connection').textContent=verified ? 'AI · connected' : endpoint && token ? 'Connection configured · not verified' : 'AI not connected'; $('#connection-dot').classList.toggle('ready',verified); }
+function updateConnection(verified = false) { $('#connection').textContent=verified ? 'Live AI · connected' : endpoint && token ? 'AI unlocked' : endpoint?'Unlock AI to start chatting':'AI setup in progress'; $('#connection-dot').classList.toggle('ready',verified);$('#unlock').hidden=serverMode||Boolean(token); }
+function unlockAI(){
+ const body=modal('Unlock live AI', 'Enter the private demo password from the owner—not an OpenAI API key.');
+ if(!endpoint){body.append(node('p','The owner is finishing AI setup. You can still save and edit your cards.'));return;}
+ const form=node('form'),password=field('Demo password'),error=node('p','','error'),submit=node('button','Unlock AI','primary');password.input.type='password';password.input.required=true;submit.type='submit';error.setAttribute('role','alert');
+ form.append(password.wrapper,error,submit);body.append(form);
+ form.onsubmit=async event=>{event.preventDefault();if(password.input.value.startsWith('sk-')){error.textContent='Use the demo password, not your API key.';return;}submit.disabled=true;try{const response=await fetch(`${endpoint}/api/unlock`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:password.input.value}),signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Error(data.error||'Could not unlock AI.');token=data.token;sessionStorage.setItem('wallet.demo.session',token);updateConnection();$('#dialog').close();toast('AI unlocked. Send a message to try your wallet.');}catch(e){error.textContent=e.message;}finally{submit.disabled=false;}};
+}
 async function requestAI(payload) {
   if(serverMode){const result=await api('/api/personal/chat','POST',{...payload,context:undefined,selectedIds:(payload.context||[]).map(i=>i.id)});updateConnection(true);return result;}
-  if (!endpoint || !token) throw Error('Connect your private AI backend in Settings to get a real response. You can still add, edit, and reuse wallet cards now.');
+  if (!endpoint || !token) throw Error('Use Unlock AI to start chatting. You can still add, edit, and reuse wallet cards now.');
   const response = await fetch(`${endpoint}/api/context`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}, body:JSON.stringify(payload), signal:AbortSignal.timeout(55000) });
-  let result; try { result=await response.json(); } catch { throw Error('The backend returned an unreadable response. Check its URL in Settings.'); }
-  if(!response.ok) throw Error(result.error || 'The request failed. Your cards are unchanged.'); updateConnection(true); return result;
+  let result; try { result=await response.json(); } catch { throw Error('The AI service returned an unreadable response. Please retry shortly.'); }
+  if(!response.ok){if(response.status===401){token='';sessionStorage.removeItem('wallet.demo.session');updateConnection();}throw Error(result.error || 'The request failed. Your cards are unchanged.');} updateConnection(true); return result;
 }
 function renderMessages() {
   const container = $('#messages'); container.replaceChildren();
@@ -161,18 +170,19 @@ async function send() {
   if(busy)return; const prompt=$('#prompt').value.trim(); if(!prompt)return;
   if(saveIntent(prompt)) { const prior=messages.filter(m=>m.role!=='system').slice(-2).map(m=>`${m.role}: ${m.content}`).join('\n'); await proposeSave(`${prior}\nUser request: ${prompt}`); return; }
   if(serverMode&&!user){signIn();return;}
-  if(!serverMode&&(!endpoint || !token)) { toast('Live chat needs your private AI connection. No message was sent.'); settings(); return; }
-  const context=selectedContext(items,selection); const history=messages.filter(m=>['user','assistant'].includes(m.role)).slice(-8).map(({role,content})=>({role,content}));
+  if(!serverMode&&(!endpoint || !token)) { unlockAI(); return; }
+  const context=selectedContext(items,selection),scope=contextVersion; const history=messages.filter(m=>m.scope===scope&&['user','assistant'].includes(m.role)).slice(-8).map(({role,content})=>({role,content}));
   // Bound conversation input to the server contract; do not silently truncate messages.
   if(history.some(m=>m.content.length>4000)) { toast('Start a new chat: a previous answer is too long to resend safely.'); return; }
   const payload={operation:'chat',messages:[...history,{role:'user',content:prompt}],context};
   if(new TextEncoder().encode(JSON.stringify(payload)).length>39000){toast('This conversation is too large. Start a new chat or select fewer cards.');return;}
-  messages.push({role:'user',content:prompt});$('#prompt').value='';setBusy(true);
-  try { const result=await requestAI(payload);if(typeof result.reply!=='string'||!result.reply.trim())throw Error('The AI returned an empty response.'); messages.push({role:'assistant',content:result.reply,context}); }
+  messages.push({role:'user',content:prompt,scope});$('#prompt').value='';setBusy(true);
+  try { const result=await requestAI(payload);if(typeof result.reply!=='string'||!result.reply.trim())throw Error('The AI returned an empty response.'); messages.push({role:'assistant',content:result.reply,context,scope}); }
   catch(e) { messages.pop(); messages.push({role:'system',content:e.name==='TimeoutError'?'The request timed out. Please retry.':e.message,failed:true,retry:prompt}); updateConnection(false); }
   finally { setBusy(false); }
 }
 $('#settings').onclick=settings; $('#add').onclick=()=>editItem(); $('#select-context').onclick=selectContext;
+$('#unlock').onclick=unlockAI;
 $('#new-chat').onclick=()=>{if(busy)return;if(messages.length&&!confirm('Start a new chat? This conversation will be cleared. Your wallet and selected cards stay.'))return;messages=[];renderMessages();};
 $('#composer').onsubmit=event=>{event.preventDefault();send();}; $('#prompt').onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();send();}};
 async function api(path,method='GET',body){
@@ -194,7 +204,7 @@ function serverSettings(){
  const link=node('a','Advanced manager & import');link.href='./manage.html';link.className='link';body.append(node('p'),link);
  body.append(node('p'),button('Sign out',async()=>{await api('/api/auth/signout','POST',{});location.reload();},'quiet'));
 }
-if(!location.hostname.endsWith('github.io')){
+ if(!location.hostname.endsWith('github.io')){
  try{const status=await api('/api/status');if(status.personal){serverMode=true;serverStatus=status;items=[];storageBroken=false;user=(await api('/api/me')).user;if(user)items=(await api('/api/personal/wallet')).items;$('.footer span').textContent=user?'Private account · Stored on this server · Export a backup in Settings':'Private app · Sign in to open your wallet';}}
  catch{ /* Static previews continue in explicitly local-browser mode. */ }
 }

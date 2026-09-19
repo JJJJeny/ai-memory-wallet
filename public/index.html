@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./personal.css">
 </head>
 <body>
-  <header class="topbar"><div class="brand"><span class="logo" aria-hidden="true">▱</span>AI Memory Wallet</div><div class="toolbar"><button id="settings" class="quiet">Settings</button><button id="add">+ Add</button></div></header>
+  <header class="topbar"><div class="brand"><span class="logo" aria-hidden="true">▱</span>AI Memory Wallet</div><div class="toolbar"><button id="settings" class="quiet">Backups</button><button id="unlock">Unlock AI</button><button id="add">+ Add</button></div></header>
   <main>
     <section class="intro"><div class="avatar">You</div><div><h1>Your wallet travels with you.</h1><p id="item-count"></p></div></section>
     <section id="cards" class="cards" aria-label="Your wallet categories"></section>
@@ -20,7 +20,7 @@
       <form id="composer" class="composer"><textarea id="prompt" aria-label="Message" placeholder="Ask something, or describe what you want to remember…" maxlength="4000" rows="2"></textarea><div class="composer-bottom"><span>Enter to send · Shift + Enter for a new line</span><button id="send" class="primary" type="submit">Send ↑</button></div></form>
       <p class="notice">When connected, sending shares your message, recent conversation, and selected cards with your backend and AI provider. Nothing is saved to your wallet without your confirmation.</p>
     </section>
-    <footer class="footer"><span>Stored in this browser · No cloud sync · Export a backup in Settings</span><span>Your context. Your choice.</span></footer>
+    <footer class="footer"><span>Stored in this browser · No cloud sync · Export using Backups</span><span>Your context. Your choice.</span></footer>
   </main>
   <dialog id="dialog" aria-labelledby="dialog-title"></dialog><div id="toast" class="toast" role="status"></div>
   <script src="./config.js"></script><script type="module" src="./personal.js"></script>

@@ -4,7 +4,13 @@ The main page follows the personal-wallet screenshot: Skills, Knowledge, Prefere
 
 ## Working without a backend
 
-Add/edit/duplicate/delete cards; optional editable starters; search; select context; copy a portable instruction package; JSON export/import; refresh persistence. Data is local to the browser and not encrypted or synchronized. The UI explicitly discloses this. Chat history is in memory and clears on refresh.
+Add/edit/delete cards; optional editable starters; search; select context; copy a portable instruction package; JSON export/import; refresh persistence. Data is local to the browser and not encrypted or synchronized. The UI explicitly discloses this. Chat history is in memory and clears on refresh.
+
+## Public Cloudflare connection
+
+GitHub Pages is configured to use the deployed Cloudflare Worker. See `cloudflare/README.md` for authentication and usage limits. Open `Open Live Wallet.command` to copy the private demo password with consent, then use Unlock AI on the public site. The OpenAI key is stored only as a Cloudflare secret, never in the public site. On September 19, deployment and password authentication were verified, but live generation returned a provider rate-limit error. Successful model output is not yet verified.
+
+Selected preferences are model instructions. Changing active context starts a fresh conversation segment so old responses cannot carry removed preferences into subsequent requests. Desktop and mobile flows are checked with `scripts/test-live-ui.cjs`; those browser checks use mocked AI, not evidence of live output quality.
 
 ## Live-chat preparation
 
@@ -16,6 +22,6 @@ The public GitHub Pages site stores cards in the browser. The local Node app sto
 
 ## Verification
 
-Run `npm test` for 24 validation and private API tests. Run `scripts/test-personal-ui.cjs` with Playwright available via `PLAYWRIGHT_MODULE`; optionally set `PROTOTYPE_URL` to a static preview. Browser tests exercise persistence, context selection, reviewed save, new chat, failure, backups, editing, deletion, and mobile layout with mocked AI only. A separate private browser check verified local sign-in, SQLite persistence, selected context, and the no-key error.
+Run `npm test` for validation, private API, and AI request-construction tests. Run `scripts/test-live-ui.cjs` with Playwright available via `PLAYWRIGHT_MODULE`; optionally set `PROTOTYPE_URL` to a static preview. Browser tests verify active preferences, history separation, unlock, backups, failures, and mobile layout with mocked AI only. A separate private browser check verified local sign-in, SQLite persistence, selected context, and the no-key error.
 
 GitHub Pages publishes `public/`; no backend secret is part of that artifact.
