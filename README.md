@@ -2,25 +2,25 @@
 
 **Save what worked. Bring it to your next AI conversation.**
 
-This is a **personal** wallet for Jenny Yang (and anyone she shares the running app with as their own account). It stores two kinds of cards:
+This is a **personal** wallet for Jenny Yang (and anyone she shares the running app with as their own account). **My Wallet** is one list of cards — preferences and skills mixed together, with a quiet type label on each card. There are no Preference / Skill tabs and no Team workspace.
 
 1. **Preferences** — how you want AI to communicate and collaborate (for example: be concise; explain tradeoffs; ask before rewriting; do not invent facts).
-2. **Workflows** — reusable text instructions for a recurring task (for example: review a landing page; turn interview notes into findings; rewrite an email without changing the meaning). A workflow is text, not a connected tool.
+2. **Skills** — reusable text instructions for a recurring task (for example: review a landing page; turn interview notes into findings; rewrite an email without changing the meaning). A skill is text, not a connected tool. The saved type is still `workflow` in the API.
 
-You select cards, preview the exact instruction text, and copy it into ChatGPT, Claude, Cursor, or any other chat. **This app does not sign into those products, sync into them, or change how a model behaves.**
+You **Select** cards, **Preview** the exact instruction text, and **Copy** it into ChatGPT, Claude, Cursor, or any other chat. **This app does not sign into those products, sync into them, or change how a model behaves.** Connecting those apps is a later idea — tonight the path is copy and paste.
 
 The old visual prototype (sample data only) is at [public/prototype](public/prototype/index.html) and, after Pages deploy, `/prototype/`.
 
 ## What you can do
 
-1. Paste notes or describe a card, then save it yourself.
-2. If optional AI is set up, ask it to draft a card. You review and edit before anything is saved. Nothing is auto-approved.
-3. Find, edit, duplicate, and delete cards.
-4. Select cards for the next task.
-5. Preview and edit the exact copy text. Unselected cards are left out.
-6. Copy to the clipboard, or select the text if the browser blocks copy.
-7. After using a card, improve the saved version.
-8. Export JSON and import it later. Import will not overwrite a card unless you choose **Replace**.
+1. **Add** a preference or a skill (a few fields is enough).
+2. **Edit** a card when the saved text should change.
+3. **Use** a card: Select it, see the Preview panel, Copy the exact text.
+4. Unselected cards are left out of the copied package.
+5. If the browser blocks the clipboard, the text is selected so you can copy it yourself.
+6. After using a card, you can improve the saved version.
+7. Export JSON and import it later. Import will not overwrite a card unless you choose **Replace**.
+8. If optional AI is set up, ask it to draft a card. You review and edit before anything is saved.
 
 ## Run on your computer
 
@@ -33,12 +33,16 @@ npm start
 
 Open http://127.0.0.1:4173
 
-1. Enter your email.
-2. On your computer, a sign-in link appears on the page and in the terminal. Click it.
-3. Add a preference and a workflow.
-4. Use **Export** if you want a backup file.
+### 60-second demo
 
-Your cards are stored in `data/wallet.db` on this computer. Signing out and signing back in with the same email still shows them. Refreshing the page keeps you signed in.
+1. Enter your email. A sign-in link appears on the page and in the terminal. Click it.
+2. **Add** one Preference and one Skill, or click **Add labeled examples**.
+3. Both cards appear in one **My Wallet** list.
+4. **Select** only one card (checkbox), or click **Use** on it.
+5. The **Preview** panel shows the exact copyable instruction text. The other card is not included.
+6. Click **Copy**. Paste into a real Claude or ChatGPT chat.
+
+Your cards are stored in `data/wallet.db` on this computer. Signing out and signing back in with the same email still shows them. Refreshing the page keeps you signed in. Use **Export** if you want a backup file.
 
 ## Public website vs your private cards
 

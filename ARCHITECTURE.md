@@ -4,7 +4,7 @@ Investigated the existing repository (compiled Figma prototype, team/PRD chat wo
 
 ## Stack
 
-- **Frontend:** vanilla HTML/CSS/JS in `public/`, no build step, no framework. Matches the old repo and is easier for a nontechnical founder to open.
+- **Frontend:** vanilla HTML/CSS/JS in `public/`, no build step, no framework. Matches the old repo and is easier for a nontechnical founder to open. Signed-in home is one **My Wallet** list (preferences and skills together) with Select, a Preview panel, and Copy.
 - **Server:** Node 22 built-in HTTP + `node:sqlite`. No npm dependencies.
 - **Auth:** email magic link. Locally the link is shown on the page and in the terminal. Google sign-in was not already in the repo, so it was not added.
 - **Persistence:** SQLite file `data/wallet.db`. Survives refresh and sign-out/sign-in on the same database. Every card query includes `user_id`.
