@@ -148,6 +148,7 @@ test('My Wallet UI is one mixed list with select, preview, and copy', () => {
   assert.match(app, /demo-store\.js/);
   assert.match(css, /\.preview-panel/);
   assert.match(css, /\.demo-banner/);
+  assert.match(css, /button\.btn-primary/);
 });
 
 test('demo store keeps cards in provided storage and supports the copy loop data', () => {

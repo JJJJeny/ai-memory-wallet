@@ -91,8 +91,12 @@ textarea { min-height: 88px; resize: vertical; }
   min-height: 44px;
 }
 .btn:hover { background: #f3f2ee; }
-.btn-primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
-.btn-primary:hover { background: #4338ca; }
+button.btn-primary, .btn-primary {
+  background: var(--indigo);
+  border-color: var(--indigo);
+  color: #fff;
+}
+button.btn-primary:hover, .btn-primary:hover { background: #4338ca; }
 .btn-danger { color: var(--red); border-color: #e8c4c2; }
 .btn-danger:hover { background: var(--red-soft); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
