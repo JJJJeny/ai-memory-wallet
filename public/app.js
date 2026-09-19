@@ -111,7 +111,7 @@ function cardForm(card = {}, extras = '') {
       </div>
       ${extras}
       <p class="error" id="form-error" hidden></p>
-      <div class="row">
+      <div class="row dialog-actions">
         <button class="btn btn-primary" type="submit">${card.id ? 'Save changes' : 'Save card'}</button>
         <button class="btn" type="button" id="ask-ai">Ask AI to draft</button>
         <button class="btn btn-ghost" type="button" id="cancel-dialog">Cancel</button>
@@ -211,6 +211,7 @@ function wallet() {
         <span class="account">${escapeHtml(state.user.email)}</span>
       </div>
       <div class="row">
+        <button class="btn btn-primary" id="add-btn" type="button">Add</button>
         <button class="btn" id="export-btn" type="button">Export</button>
         <button class="btn" id="import-btn" type="button">Import</button>
         <button class="btn" id="privacy-btn" type="button">Privacy</button>
@@ -224,7 +225,6 @@ function wallet() {
         <p class="lede">Select cards, preview the exact text, then copy it into Claude or ChatGPT. Unselected cards stay out.</p>
         <div class="row toolbar-actions">
           <input class="search" type="search" id="search" placeholder="Search cards" value="${escapeHtml(state.query)}" aria-label="Search cards">
-          <button class="btn btn-primary" id="add-btn" type="button">Add</button>
         </div>
       </div>
       <div class="wallet-layout">

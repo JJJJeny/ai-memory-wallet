@@ -77,7 +77,12 @@ input[type="text"], input[type="email"], input[type="search"], select, textarea 
   width: 100%; border: 1px solid var(--line-strong); border-radius: 12px;
   background: #fff; padding: 12px 14px;
 }
-textarea { min-height: 140px; resize: vertical; }
+textarea { min-height: 88px; resize: vertical; }
+.dialog textarea { min-height: 72px; }
+.dialog-actions {
+  position: sticky; bottom: 0; background: #fff;
+  padding-top: 12px; margin-top: 8px;
+}
 .field { margin-bottom: 14px; }
 
 .btn, button.btn {
