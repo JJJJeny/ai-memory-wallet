@@ -1,21 +1,48 @@
-# Verification
+# Test report
 
-Core and backend contract tests run with `npm test`, using Node's built-in test runner and mocked AI bindings. They cover exact source excerpts, rejection and exclusion, receipt snapshots, untrusted extraction output, backend configuration, CORS, rate limiting, and approved-context-only draft requests.
+Automated tests: `npm test` (Node’s built-in runner). No extra install.
 
-Browser tests use Playwright and installed Chrome:
+## Passed
 
-```sh
-node tests/browser.cjs
-node tests/live-ui.cjs
-node tests/team-browser.cjs
-```
+| Requirement | How it was checked |
+| --- | --- |
+| Sign in | Magic-link request + confirm sets an HTTP-only session cookie |
+| Create a preference and a workflow | `POST /api/cards` for both types |
+| Persist after refresh | Same cookie, `GET /api/cards` returns both cards |
+| Persist after sign-out and sign-in | New magic link for the same email returns the same cards |
+| Another account cannot read or change my cards | Second email sees zero cards; PATCH/DELETE of Jenny’s id returns 404; Jenny’s card is unchanged |
+| Edit and delete | PATCH updates instructions; DELETE removes the card; duplicate keeps a copy |
+| Select / preview / unselected excluded | `buildInstructionPackage` unit tests |
+| Copy with fallback | Unit of package text plus UI fallback (`execCommand` / select text) in `public/app.js` |
+| Export / import without silent overwrite | Import without resolutions fails; preview reports conflicts; keep-both adds a new card and leaves the original |
+| API failure does not block manual use | With no model key, `POST /api/cards` still works; `POST /api/propose` returns 503 and no fake proposal |
+| Public page does not include wallet contents | `GET /` after creating a secret card does not contain that text; `/api/me` without cookie is signed out |
+| No secrets in frontend | `public/config.js` has no keys; grep of `public/` for typical secret names |
+| Imported markup is stored as text | `<script>` / `onerror` remain data, not executed by the API |
 
-Install Playwright in your development environment, or set `PLAYWRIGHT_MODULE` to its installed module path. These optional browser tests are not required for GitHub Pages' dependency-free deployment workflow. Start `npm run dev` first. Screenshots go in ignored `test-results/`.
+## Failed
 
-Browser coverage: exact natural-language PRD/reference/wiki request, source-name matching and missing references, popup selection/edit/conflict resolution, draft contents, downloadable receipt, wiki cancel/approve/versioning, context reuse across chats, project isolation, pasted notes, HTML escaping, desktop/mobile layouts, and AI retry with a mocked endpoint. The local-mode suite verifies no POST requests or external wiki writes. Set `TEST_BASE_URL` to run the main browser suite against the public deployment.
+None in the automated suite at the time this file was written. Re-run `npm test` after changes.
 
-Native WebMCP browser availability and a live Confluence MCP connector are not verified. They are not required for the local wiki preview flow.
+## Untested / limited
 
-The teammate-update scenario is available after a CloudShield draft includes the sample October 15 milestone: choose **Check teammate updates**. Test adding an explicitly unconfirmed risk, asking for confirmation, simulating the owner reply, reviewing the date change, and drafting again. Dismiss and keep-current preserve the existing milestone. Prior draft receipts remain snapshots. The teammate and owner are seeded examples; no messages are sent and no real agent activity is monitored. Refresh resets this session.
+| Item | Why |
+| --- | --- |
+| Real email delivery | No email provider is configured. Local mode shows the link. |
+| Live OpenAI / Anthropic | No keys in this environment. Propose path is tested only for the disabled/error case. |
+| Hosted production with `ALLOW_DEV_MAGIC_LINK=false` | Not deployed; do not put real private data on a public host until email sending exists. |
+| Browser clipboard permission dialog | Automated API tests do not click a real browser prompt. The fallback path is implemented. |
+| Desktop and mobile layout | Implemented with a single-column mobile layout and 44px targets. Confirm in a real browser after `npm start`. |
+| GitHub Pages after this change | Workflow still publishes `public/`. Confirm the live landing does not show anyone’s cards. |
+| Old Figma / team / PRD prototype | Archived; not part of the personal MVP. |
 
-GitHub Pages public access was verified after initial deployment. Recheck it after each new deployment. Still unverified: live Cloudflare model inference, deployed Worker bindings, and retention with real users. Do not present mock tests or local outline generation as AI quality or demand validation.
+## Manual check (about 5 minutes)
+
+1. `npm start` and open http://127.0.0.1:4173
+2. Sign in with your email using the on-page link.
+3. Add one preference and one workflow.
+4. Refresh. Both cards are still there.
+5. Select only one card, preview, confirm the other card’s text is absent, copy.
+6. Export, change a title in the JSON, import, choose **Keep both**.
+7. Sign out, sign in again, cards remain.
+8. Narrow the window to phone width and repeat Add / Use.
