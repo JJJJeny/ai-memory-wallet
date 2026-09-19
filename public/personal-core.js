@@ -7,6 +7,7 @@ export function validateItem(item) {
 export function parseBackup(text) {
   if (text.length > 500000) throw new Error('Choose a backup smaller than 500 KB.');
   const data = JSON.parse(text);
+  if(data.version===1 && Array.isArray(data.cards))return data.cards.map(card=>validateItem({type:card.type==='workflow'?'skill':card.type,title:card.title,text:card.instructions}));
   if (data.version !== 1 || !Array.isArray(data.items) || data.items.length > 200) throw new Error('This is not a supported wallet backup (maximum 200 cards).');
   return data.items.map(validateItem);
 }

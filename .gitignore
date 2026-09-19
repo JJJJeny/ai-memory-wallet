@@ -6,3 +6,7 @@ node_modules/
 .wrangler/
 test-results/
 *.log
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/.session-secret
