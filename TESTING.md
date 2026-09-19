@@ -12,7 +12,7 @@ Automated tests: `npm test` (Node’s built-in runner). No extra install.
 | Persist after sign-out and sign-in | New magic link for the same email returns the same cards |
 | Another account cannot read or change my cards | Second email sees zero cards; PATCH/DELETE of Jenny’s id returns 404; Jenny’s card is unchanged |
 | Edit and delete | PATCH updates instructions; DELETE removes the card; duplicate keeps a copy |
-| Select / preview / unselected excluded | `buildInstructionPackage` unit tests |
+| Select / preview / unselected excluded | `buildInstructionPackage` unit tests; mixed list is the default filter |
 | Copy with fallback | Unit of package text plus UI fallback (`execCommand` / select text) in `public/app.js` |
 | Export / import without silent overwrite | Import without resolutions fails; preview reports conflicts; keep-both adds a new card and leaves the original |
 | API failure does not block manual use | With no model key, `POST /api/cards` still works; `POST /api/propose` returns 503 and no fake proposal |
@@ -42,7 +42,7 @@ None in the automated suite at the time this file was written. Re-run `npm test`
 2. Sign in with your email using the on-page link.
 3. Add one preference and one workflow.
 4. Refresh. Both cards are still there.
-5. Select only one card, preview, confirm the other card’s text is absent, copy.
+5. On one My Wallet list (no Preference / Skill tabs), select only one card, confirm Preview shows that card’s exact text and not the other, copy.
 6. Export, change a title in the JSON, import, choose **Keep both**.
 7. Sign out, sign in again, cards remain.
 8. Narrow the window to phone width and repeat Add / Use.

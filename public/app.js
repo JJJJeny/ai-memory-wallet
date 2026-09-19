@@ -1,5 +1,6 @@
 import {
   buildInstructionPackage,
+  cardTypeLabel,
   EXAMPLE_CARDS,
   exportPayload,
   filterCards,
@@ -15,9 +16,7 @@ const state = {
   status: null,
   user: null,
   cards: [],
-  tab: 'all',
   query: '',
-  selecting: false,
   selected: new Set(),
   dialog: null,
   notice: '',
@@ -61,7 +60,11 @@ async function refreshCards() {
 }
 
 function filtered() {
-  return filterCards(state.cards, { tab: state.tab, query: state.query });
+  return filterCards(state.cards, { query: state.query });
+}
+
+function previewText() {
+  return buildInstructionPackage(state.cards, [...state.selected]);
 }
 
 function openDialog(dialog) {
@@ -91,7 +94,7 @@ function cardForm(card = {}, extras = '') {
         <span class="label">Type</span>
         <div class="row">
           <label class="choice"><input type="radio" name="type" value="preference" ${card.type !== 'workflow' ? 'checked' : ''}> Preference — how AI should work with me</label>
-          <label class="choice"><input type="radio" name="type" value="workflow" ${card.type === 'workflow' ? 'checked' : ''}> Workflow — reusable steps for a recurring task</label>
+          <label class="choice"><input type="radio" name="type" value="workflow" ${card.type === 'workflow' ? 'checked' : ''}> Skill — reusable steps for a recurring task</label>
         </div>
       </div>
       <div class="field">
@@ -108,7 +111,7 @@ function cardForm(card = {}, extras = '') {
       </div>
       ${extras}
       <p class="error" id="form-error" hidden></p>
-      <div class="row">
+      <div class="row dialog-actions">
         <button class="btn btn-primary" type="submit">${card.id ? 'Save changes' : 'Save card'}</button>
         <button class="btn" type="button" id="ask-ai">Ask AI to draft</button>
         <button class="btn btn-ghost" type="button" id="cancel-dialog">Cancel</button>
@@ -165,7 +168,7 @@ function landing(apiMissing) {
     <main id="main" class="main">
       <section class="hero">
         <h1>Save what worked. Bring it to your next AI conversation.</h1>
-        <p>Keep two kinds of cards: preferences for how you want AI to work with you, and workflows for recurring tasks. Select the ones you need, preview the exact text, and copy it into ChatGPT, Claude, or any other chat.</p>
+        <p>Keep two kinds of cards: preferences for how you want AI to work with you, and skills for recurring tasks. Select the ones you need, preview the exact text, and copy it into ChatGPT, Claude, or any other chat.</p>
         <p>This is a personal wallet. It does not create a team workspace, connect to those assistants, or change how a model behaves by itself.</p>
       </section>
       ${apiMissing ? `
@@ -199,6 +202,8 @@ function landing(apiMissing) {
 
 function wallet() {
   const cards = filtered();
+  const text = previewText();
+  const selectedCount = state.selected.size;
   return `
     <header class="top">
       <div class="brand">
@@ -206,69 +211,78 @@ function wallet() {
         <span class="account">${escapeHtml(state.user.email)}</span>
       </div>
       <div class="row">
+        <button class="btn btn-primary" id="add-btn" type="button">Add</button>
         <button class="btn" id="export-btn" type="button">Export</button>
         <button class="btn" id="import-btn" type="button">Import</button>
         <button class="btn" id="privacy-btn" type="button">Privacy</button>
         <button class="btn" id="signout-btn" type="button">Sign out</button>
       </div>
     </header>
-    <main id="main" class="main">
+    <main id="main" class="main wallet-main">
       ${state.notice ? `<p class="success">${escapeHtml(state.notice)}</p>` : ''}
       ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ''}
       <div class="toolbar">
-        <div class="tabs" role="tablist">
-          ${['all', 'preference', 'workflow'].map((tab) => `
-            <button class="btn" role="tab" data-tab="${tab}" aria-selected="${state.tab === tab}">
-              ${tab === 'all' ? 'All' : tab === 'preference' ? 'Preferences' : 'Workflows'}
-            </button>
-          `).join('')}
-        </div>
-        <input class="search" type="search" id="search" placeholder="Search cards" value="${escapeHtml(state.query)}" aria-label="Search cards">
-        <div class="row">
-          <button class="btn btn-primary" id="add-btn" type="button">Add</button>
-          <button class="btn" id="use-btn" type="button">${state.selecting ? 'Done selecting' : 'Use'}</button>
+        <p class="lede">Select cards, preview the exact text, then copy it into Claude or ChatGPT. Unselected cards stay out.</p>
+        <div class="row toolbar-actions">
+          <input class="search" type="search" id="search" placeholder="Search cards" value="${escapeHtml(state.query)}" aria-label="Search cards">
         </div>
       </div>
-      ${!state.cards.length ? `
-        <div class="empty">
-          <p>Your wallet is empty. Add a preference or a workflow, or add a labeled example you can delete anytime.</p>
-          <div class="row">
-            <button class="btn btn-primary" id="empty-add" type="button">Add</button>
-            <button class="btn" id="add-examples" type="button">Add labeled examples</button>
-          </div>
-        </div>
-      ` : cards.length ? `
-        <div class="cards">
-          ${cards.map((card) => `
-            <article class="card ${state.selected.has(card.id) ? 'selected' : ''}">
-              ${state.selecting ? `<label class="row"><input type="checkbox" data-select="${escapeHtml(card.id)}" ${state.selected.has(card.id) ? 'checked' : ''}> Include this card</label>` : ''}
+      <div class="wallet-layout">
+        <section class="wallet-list" aria-label="My cards">
+          ${!state.cards.length ? `
+            <div class="empty">
+              <p>Your wallet is empty. Add a preference or a skill, or add labeled examples you can delete anytime.</p>
               <div class="row">
-                <span class="pill ${card.type === 'preference' ? 'pill-pref' : 'pill-work'}">${card.type === 'preference' ? 'Preference' : 'Workflow'}</span>
-                ${card.isTemplate ? '<span class="pill pill-example">Example — not your data</span>' : ''}
+                <button class="btn btn-primary" id="empty-add" type="button">Add</button>
+                <button class="btn" id="add-examples" type="button">Add labeled examples</button>
               </div>
-              <h2>${escapeHtml(card.title)}</h2>
-              <p>${escapeHtml(card.whenToUse || 'No “when to use” note yet')}</p>
-              <div class="card-actions">
-                <button class="btn" data-edit="${escapeHtml(card.id)}" type="button">Edit</button>
-                <button class="btn" data-dup="${escapeHtml(card.id)}" type="button">Duplicate</button>
-                <button class="btn btn-danger" data-del="${escapeHtml(card.id)}" type="button">Delete</button>
-              </div>
-            </article>
-          `).join('')}
-        </div>
-      ` : `<div class="empty">No cards match this search.</div>`}
-    </main>
-    ${state.selecting ? `
-      <div class="use-bar">
-        <span>${state.selected.size} selected · unselected cards stay out of the copy</span>
-        <button class="btn btn-primary" id="preview-btn" type="button" ${state.selected.size ? '' : 'disabled'}>Preview copy</button>
+            </div>
+          ` : cards.length ? `
+            <div class="cards">
+              ${cards.map((card) => `
+                <article class="card ${state.selected.has(card.id) ? 'selected' : ''}">
+                  <label class="select-row">
+                    <input type="checkbox" data-select="${escapeHtml(card.id)}" ${state.selected.has(card.id) ? 'checked' : ''}>
+                    <span>Select</span>
+                  </label>
+                  <div class="row">
+                    <span class="pill ${card.type === 'preference' ? 'pill-pref' : 'pill-work'}">${cardTypeLabel(card.type)}</span>
+                    ${card.isTemplate ? '<span class="pill pill-example">Example — not your data</span>' : ''}
+                  </div>
+                  <h2>${escapeHtml(card.title)}</h2>
+                  <p>${escapeHtml(card.whenToUse || 'No “when to use” note yet')}</p>
+                  <div class="card-actions">
+                    <button class="btn" data-edit="${escapeHtml(card.id)}" type="button">Edit</button>
+                    <button class="btn btn-primary" data-use="${escapeHtml(card.id)}" type="button">Use</button>
+                    <button class="btn" data-dup="${escapeHtml(card.id)}" type="button">Duplicate</button>
+                    <button class="btn btn-danger" data-del="${escapeHtml(card.id)}" type="button">Delete</button>
+                  </div>
+                </article>
+              `).join('')}
+            </div>
+          ` : `<div class="empty">No cards match this search.</div>`}
+        </section>
+        <aside class="preview-panel" id="preview-panel" aria-label="Preview">
+          <div class="preview-head">
+            <h2>Preview</h2>
+            <p class="hint">${selectedCount
+              ? `${selectedCount} selected · this is the exact text you will copy`
+              : 'Select a card to see the exact text you will copy'}</p>
+          </div>
+          <textarea class="preview" id="package-text" ${text ? '' : 'disabled'} placeholder="Select one or more cards. Unselected cards are left out of this package.">${escapeHtml(text)}</textarea>
+          <p class="notice" id="copy-status" hidden></p>
+          <div class="row preview-actions">
+            <button class="btn btn-primary" id="copy-btn" type="button" ${text ? '' : 'disabled'}>Copy</button>
+            ${selectedCount ? `<button class="btn" id="improve-btn" type="button">Improve a saved card</button>` : ''}
+          </div>
+        </aside>
       </div>
-    ` : ''}
+    </main>
     <footer class="main footer">
       ${state.status?.ai?.enabled
         ? 'AI drafting is on. It only runs when you click Ask AI to draft, and it sends the text in that box.'
         : 'AI drafting is off. You can still add, edit, and copy cards by hand.'}
-      Analytics are off.
+      Analytics are off. Connecting ChatGPT or Claude is a later idea — tonight, copy and paste.
     </footer>
   `;
 }
@@ -281,19 +295,6 @@ function dialogHtml() {
       <h2 id="d-title">${dialog.card?.id ? 'Edit card' : 'Add card'}</h2>
       <p class="hint">Cards are saved only after you review the fields and click save.</p>
       ${cardForm(dialog.card || {})}
-    </section></div>`;
-  }
-  if (dialog.type === 'preview') {
-    return `<div class="overlay" id="overlay"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="d-title">
-      <h2 id="d-title">Copy these instructions</h2>
-      <p class="hint">This is the exact text that will be copied. Edit it if you want. It is not sent to ChatGPT, Claude, or any other assistant from here.</p>
-      <textarea class="preview" id="package-text">${escapeHtml(dialog.text)}</textarea>
-      <p class="notice" id="copy-status" hidden></p>
-      <div class="row">
-        <button class="btn btn-primary" id="copy-btn" type="button" data-focus>Copy</button>
-        <button class="btn" id="improve-btn" type="button">Improve a saved card</button>
-        <button class="btn btn-ghost" id="cancel-dialog" type="button">Close</button>
-      </div>
     </section></div>`;
   }
   if (dialog.type === 'improve') {
@@ -379,22 +380,8 @@ function bind() {
     }
   });
 
-  document.querySelectorAll('[data-tab]').forEach((button) => button.addEventListener('click', () => {
-    state.tab = button.dataset.tab;
-    render();
-  }));
-
   document.getElementById('add-btn')?.addEventListener('click', () => openDialog({ type: 'card', card: {} }));
   document.getElementById('empty-add')?.addEventListener('click', () => openDialog({ type: 'card', card: {} }));
-  document.getElementById('use-btn')?.addEventListener('click', () => {
-    state.selecting = !state.selecting;
-    if (!state.selecting) state.selected.clear();
-    render();
-  });
-  document.getElementById('preview-btn')?.addEventListener('click', () => {
-    const text = buildInstructionPackage(state.cards, [...state.selected]);
-    openDialog({ type: 'preview', text, usedIds: [...state.selected] });
-  });
   document.getElementById('export-btn')?.addEventListener('click', async () => {
     const payload = exportPayload(state.cards);
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -430,6 +417,12 @@ function bind() {
     if (box.checked) state.selected.add(box.dataset.select);
     else state.selected.delete(box.dataset.select);
     render();
+  }));
+  document.querySelectorAll('[data-use]').forEach((button) => button.addEventListener('click', () => {
+    state.selected.add(button.dataset.use);
+    render();
+    document.getElementById('preview-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('copy-btn')?.focus();
   }));
   document.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', () => {
     const card = state.cards.find((item) => item.id === button.dataset.edit);
@@ -471,8 +464,8 @@ function bind() {
     }
   });
   document.getElementById('improve-btn')?.addEventListener('click', () => {
-    const used = state.cards.filter((card) => state.dialog.usedIds.includes(card.id));
-    openDialog({ type: 'improve', cards: used });
+    const used = state.cards.filter((card) => state.selected.has(card.id));
+    if (used.length) openDialog({ type: 'improve', cards: used });
   });
   document.getElementById('card-form')?.addEventListener('submit', async (event) => {
     event.preventDefault();

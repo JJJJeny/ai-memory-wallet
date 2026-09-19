@@ -33,7 +33,7 @@ export function normalizeEmail(value) {
 
 export function validateCardInput(input = {}) {
   const type = input.type;
-  if (!CARD_TYPES.includes(type)) throw new Error('Choose Preference or Workflow.');
+  if (!CARD_TYPES.includes(type)) throw new Error('Choose Preference or Skill.');
   const title = cleanText(input.title, LIMITS.title);
   const whenToUse = cleanText(input.whenToUse ?? '', LIMITS.whenToUse);
   const instructions = cleanText(input.instructions, LIMITS.instructions);
@@ -76,11 +76,12 @@ export function cardMatchesQuery(card, query) {
     .includes(q);
 }
 
-export function filterCards(cards, { tab = 'all', query = '' } = {}) {
-  return cards.filter((card) => {
-    if (tab !== 'all' && card.type !== tab) return false;
-    return cardMatchesQuery(card, query);
-  });
+export function cardTypeLabel(type) {
+  return type === 'preference' ? 'Preference' : 'Skill';
+}
+
+export function filterCards(cards, { query = '' } = {}) {
+  return cards.filter((card) => cardMatchesQuery(card, query));
 }
 
 export function buildInstructionPackage(cards, selectedIds, { editedText } = {}) {
@@ -95,8 +96,7 @@ export function buildInstructionPackage(cards, selectedIds, { editedText } = {})
     '',
   ];
   for (const card of selected) {
-    const kind = card.type === 'preference' ? 'Preference' : 'Workflow';
-    lines.push(`## ${kind}: ${card.title}`);
+    lines.push(`## ${cardTypeLabel(card.type)}: ${card.title}`);
     if (card.whenToUse) lines.push(`When to use: ${card.whenToUse}`);
     if (card.inputs) lines.push(`Optional inputs: ${card.inputs}`);
     lines.push(card.instructions);
